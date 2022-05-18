@@ -26,7 +26,7 @@ app.get("/api/hello", function (req, res) {
   res.json({ greeting: "hello API" });
 });
 
-//short and save url
+//save url on post
 app
   .use(bodyParser.urlencoded({ extended: true }))
   .route("/api/shorturl")
@@ -39,7 +39,8 @@ app
     let shortUrlId;
     //empty string or invalid url error
     const errMsg = { error: "invalid url" };
-    if (!url || !url.match(/\.{1,}/)) return errMsg;
+
+    if (!url || !url.match(/\.{1,}/)) return res.json(errMsg);
 
     //check if url already exists,
     if (currData !== []) {
@@ -75,8 +76,21 @@ app
       saveShortUrl(currData);
 
       res.send(successData);
+      next();
     });
   });
+
+//get and redirect
+app.get("/api/shorturl/:shortCode", (req, res) => {
+  const urlsList = getExistingUrls();
+  const { shortCode } = req.params;
+  const errMsg = { error: "No short URL found for the given input" };
+
+  const found = urlsList.find((url) => url.short_url === +shortCode);
+  if (!found) return res.json(errMsg);
+
+  res.redirect(found.original_url);
+});
 
 const saveShortUrl = (urlData) => {
   fs.writeFileSync("urlsData.json", JSON.stringify(urlData));
